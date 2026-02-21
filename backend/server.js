@@ -1,33 +1,46 @@
 const express = require("express");
-const path = require("path");
+const mongoose = require("mongoose");
 const cors = require("cors");
+require("dotenv").config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from React build folder
-app.use(express.static(path.join(__dirname, "build")));
+// Connect MongoDB
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB Connected"))
+  .catch(err => console.log(err));
 
-// Example API route (for contact form)
-app.post("/api/contact", (req, res) => {
-  const { name, email, message } = req.body;
+// Import Model
+const Contact = require("./models/Contact");
 
-  console.log("Contact Form Data:");
-  console.log("Name:", name);
-  console.log("Email:", email);
-  console.log("Message:", message);
-
-  res.json({ success: true, message: "Message received successfully!" });
+// Test Route
+app.get("/", (req, res) => {
+  res.send("Portfolio Backend Running 🚀");
 });
 
-// Handle React routing
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "build", "index.html"));
+// Contact API
+app.post("/api/contact", async (req, res) => {
+  try {
+    const { name, email, message } = req.body;
+
+    const newContact = new Contact({
+      name,
+      email,
+      message
+    });
+
+    await newContact.save();
+
+    res.status(201).json({ message: "Message Saved Successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Something went wrong" });
+  }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
